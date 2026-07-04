@@ -1,0 +1,56 @@
+{
+  "name": "Ménage — SMS hebdo aux femmes de ménage",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [ { "field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 7 } ] }
+      },
+      "name": "Chaque lundi à 7h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "trigger-weekly"
+    },
+    {
+      "parameters": {
+        "url": "https://les-iconiques.netlify.app/.netlify/functions/reporting",
+        "options": {}
+      },
+      "name": "Récupère le planning",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [470, 300],
+      "id": "http-reporting"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ⚙️ CONFIG — associe chaque maison à sa femme de ménage (nom + téléphone).\n// Les clés doivent correspondre EXACTEMENT au nom de la propriété dans Lodgify.\nconst CLEANERS = {\n  \"Gite Royan 6 pers + jaccuzi + proche plage\": { nom: \"Marie\", tel: \"+33600000001\" },\n  \"Maison d'architecte avec piscine près de bordeaux\": { nom: \"Sophie\", tel: \"+33600000002\" },\n};\n\nconst FR = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];\nfunction jour(iso){ const [y,m,d]=iso.split('-'); return `${+d} ${FR[+m-1]}`; }\n\nconst resp = $input.first().json;\nconst props = resp.properties || [];\nconst today = new Date();\nconst limit = new Date(today); limit.setDate(limit.getDate()+30);\nconst limitIso = limit.toISOString().slice(0,10);\n\nconst out = [];\nfor (const p of props){\n  const cleaner = CLEANERS[p.name];\n  if (!cleaner) continue; // maison sans femme de ménage assignée → ignorée\n  const list = (p.turnovers||[]).filter(t => t.checkout <= limitIso);\n  if (!list.length) continue;\n\n  const lignes = list.map(t => {\n    if (t.sameDay) return `- ${jour(t.checkout)} : ⚠️ ménage EXPRESS (arrivée le jour même)`;\n    if (t.gapDays!==null && t.gapDays<=2) return `- ${jour(t.checkout)} : ménage sous ${t.gapDays} j (arrivée le ${jour(t.nextCheckin)})`;\n    if (t.nextCheckin) return `- ${jour(t.checkout)} : prochaine arrivée le ${jour(t.nextCheckin)}`;\n    return `- ${jour(t.checkout)} : ménage à planifier`;\n  }).join('\\n');\n\n  const message = `Bonjour ${cleaner.nom},\\nVoici les ménages à prévoir pour \"${p.name}\" (30 prochains jours) :\\n${lignes}\\n\\nMerci et bonne semaine !`;\n  out.push({ json: { to: cleaner.tel, message } });\n}\n\nreturn out;"
+      },
+      "name": "Construit les messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300],
+      "id": "code-messages"
+    },
+    {
+      "parameters": {
+        "from": "+33VOTRE_NUMERO_TWILIO",
+        "to": "={{ $json.to }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "name": "Envoie le SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [930, 300],
+      "id": "send-sms"
+    }
+  ],
+  "connections": {
+    "Chaque lundi à 7h": { "main": [[{ "node": "Récupère le planning", "type": "main", "index": 0 }]] },
+    "Récupère le planning": { "main": [[{ "node": "Construit les messages", "type": "main", "index": 0 }]] },
+    "Construit les messages": { "main": [[{ "node": "Envoie le SMS", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

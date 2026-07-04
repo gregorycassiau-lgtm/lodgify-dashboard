@@ -124,7 +124,10 @@ function buildTotal(props){
   const ytd={thisYear:{nights:0,revenue:0},lastYear:{nights:0,revenue:0}};
   for(const p of props){if(p.ytd){ytd.thisYear.revenue+=p.ytd.thisYear.revenue;ytd.thisYear.nights+=p.ytd.thisYear.nights;
     ytd.lastYear.revenue+=p.ytd.lastYear.revenue;ytd.lastYear.nights+=p.ytd.lastYear.nights;}}
-  return{propertyId:"__total__",name:`Total (${n} maisons)`,months,cal,ytd,isTotal:true,nProps:n};
+  const turnovers=[];
+  for(const p of props)for(const t of (p.turnovers||[]))turnovers.push({...t,house:p.name});
+  turnovers.sort((a,b)=>a.checkout.localeCompare(b.checkout));
+  return{propertyId:"__total__",name:`Total (${n} maisons)`,months,cal,ytd,turnovers,isTotal:true,nProps:n};
 }
 
 // Occupation moyenne d'une fenêtre [start,end[ du calendrier (en %)
@@ -244,6 +247,8 @@ function render(){
       <div class="note">${pct} % de l'objectif annuel déjà réservé.</div>
     </div>
 
+    ${buildCleaningCard(view)}
+
     <div class="card">
       <h2>Conseils tarifaires — 60 prochains jours</h2>
       ${diag}
@@ -308,6 +313,28 @@ function buildDetailTable(view){
       <thead><tr><th>Mois</th><th>Nuits</th><th>Taux</th><th>Prix moy.</th><th>Revenu</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     <div class="note">${note}</div></div>`;
+}
+
+// Planning ménage — 30 prochains jours
+function fmtDayFull(iso){const[y,m,d]=iso.split("-");return`${+d} ${FR_MONTHS[+m-1]}`;}
+function buildCleaningCard(view){
+  const limit=new Date();limit.setDate(limit.getDate()+30);
+  const limitIso=limit.toISOString().slice(0,10);
+  const list=(view.turnovers||[]).filter(t=>t.checkout<=limitIso);
+  if(!list.length) return `<div class="card"><h2>🧹 Planning ménage — 30 prochains jours</h2><div class="note">Aucun départ prévu sur les 30 prochains jours.</div></div>`;
+  const express=list.filter(t=>t.sameDay).length;
+  const rows=list.map(t=>{
+    let status,color;
+    if(t.sameDay){status="⚠️ Départ + arrivée le même jour — ménage express";color="var(--red)";}
+    else if(t.gapDays!==null&&t.gapDays<=2){status=`Arrivée dans ${t.gapDays} j — ménage sous ${t.gapDays} j`;color="var(--amber)";}
+    else if(t.nextCheckin){status=`Prochaine arrivée le ${fmtDayFull(t.nextCheckin)}`;color="var(--grey)";}
+    else{status="Pas d'arrivée proche — à planifier";color="var(--grey)";}
+    const house=view.isTotal?`<span style="color:var(--blue);font-weight:600">${t.house}</span> · `:"";
+    return `<li><b>${fmtDayFull(t.checkout)}</b> — ${house}<span style="color:${color}">${status}</span></li>`;
+  }).join("");
+  return `<div class="card"><h2>🧹 Planning ménage — 30 prochains jours</h2>
+    <div class="note" style="margin-top:0;margin-bottom:8px"><b>${list.length} ménage${list.length>1?"s":""}</b> à prévoir${express?`, dont <b style="color:var(--red)">${express} le jour même</b>`:""}.</div>
+    <ul class="gaplist">${rows}</ul></div>`;
 }
 
 function sel(i){current=i;render();}

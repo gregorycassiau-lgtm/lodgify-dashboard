@@ -78,11 +78,13 @@ function computeStats(bookings, names) {
         name: b.property_name || names[propId] || `Propriété ${propId}`,
         months: {},
         booked: new Set(),
+        stays: [],
         ytdThis: { nights: 0, revenue: 0 },
         ytdLast: { nights: 0, revenue: 0 },
       };
     }
     const P = byProp[propId];
+    P.stays.push({ arrival: iso(new Date(arrival)), departure: iso(new Date(departure)) });
     for (const d of nights) {
       const ym = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
       if (!P.months[ym]) P.months[ym] = { nights: 0, revenue: 0 };
@@ -110,8 +112,23 @@ function computeStats(bookings, names) {
       next60.push({ date: iso(d), booked: data.booked.has(iso(d)) });
     }
 
+    // Planning ménage : départs des 45 prochains jours + prochaine arrivée
+    const horizon = new Date(today); horizon.setUTCDate(horizon.getUTCDate() + 45);
+    const horizonIso = iso(horizon);
+    const arrivals = data.stays.map(s => s.arrival).sort();
+    const turnovers = data.stays
+      .filter(s => s.departure >= iso(today) && s.departure <= horizonIso)
+      .map(s => {
+        const nextCheckin = arrivals.find(a => a >= s.departure) || null;
+        const sameDay = nextCheckin === s.departure;
+        const gapDays = nextCheckin
+          ? Math.round((new Date(nextCheckin) - new Date(s.departure)) / 86400000) : null;
+        return { checkout: s.departure, nextCheckin, sameDay, gapDays };
+      })
+      .sort((a, b) => a.checkout.localeCompare(b.checkout));
+
     result.push({
-      propertyId: propId, name: data.name, months, next60,
+      propertyId: propId, name: data.name, months, next60, turnovers,
       ytd: {
         thisYear: { nights: data.ytdThis.nights, revenue: Math.round(data.ytdThis.revenue) },
         lastYear: { nights: data.ytdLast.nights, revenue: Math.round(data.ytdLast.revenue) },

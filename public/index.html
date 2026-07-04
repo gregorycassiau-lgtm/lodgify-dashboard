@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reporting locatif — données en direct</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --navy:#1F3B5C; --blue:#2E6CA4; --green:#1D9E75; --grey:#5A5F66;
+    --border:#E2E5EA; --bg:#F7F8FA; --lightgreen:#E3F1E7; --lightgrey:#F2F4F7;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+         color:#222; background:var(--bg); padding:24px; }
+  .wrap { max-width:1080px; margin:0 auto; }
+  header { margin-bottom:20px; }
+  h1 { font-size:22px; color:var(--navy); font-weight:600; }
+  .sub { color:var(--grey); font-size:13px; margin-top:4px; }
+  .tabs { display:flex; gap:8px; margin:20px 0; flex-wrap:wrap; }
+  .tab { padding:7px 14px; border:1px solid var(--border); border-radius:8px;
+         background:#fff; cursor:pointer; font-size:13px; color:var(--grey); }
+  .tab.active { background:#E6F1FB; color:var(--blue); border-color:#B5D4F4; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+  .kpi { background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .kpi .l { font-size:12px; color:var(--grey); }
+  .kpi .v { font-size:22px; font-weight:600; color:var(--navy); margin-top:3px; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px 20px; margin-bottom:16px; }
+  .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--grey); margin-bottom:12px; font-weight:600; }
+  .charts { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { padding:7px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  th { font-size:11px; color:var(--grey); font-weight:600; }
+  tr.hot td { background:var(--lightgreen); }
+  .pill { display:inline-block; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:600; }
+  .loading, .error { text-align:center; padding:60px 20px; color:var(--grey); }
+  .error { color:#A32D2D; }
+  @media (max-width:760px){ .kpis{grid-template-columns:repeat(2,1fr);} .charts{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Reporting locatif — données en direct</h1>
+    <div class="sub" id="sub">Chargement des données Lodgify…</div>
+  </header>
+  <div id="app"><div class="loading">Chargement…</div></div>
+</div>
+
+<script>
+const FR_MONTHS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+function fmtMonth(ym){ const [y,m]=ym.split("-"); return `${FR_MONTHS[+m-1]} ${y.slice(2)}`; }
+function euro(n){ return n.toLocaleString("fr-FR")+" €"; }
+function occColor(v){ if(v>=65)return"#27500A"; if(v>=35)return"#639922"; if(v>=15)return"#BA7517"; if(v>0)return"#E24B4A"; return"#D8D6CE"; }
+function pill(v){ const c=occColor(v); return `<span class="pill" style="background:${c}22;color:${c}">${v.toFixed(1).replace(".",",")} %</span>`; }
+
+let DATA=null, current=0, occChart=null, revChart=null;
+
+async function load(){
+  try{
+    const res = await fetch("/.netlify/functions/reporting");
+    if(!res.ok) throw new Error("Erreur "+res.status);
+    DATA = await res.json();
+    if(!DATA.properties || DATA.properties.length===0) throw new Error("Aucune réservation trouvée.");
+    document.getElementById("sub").textContent =
+      "Mis à jour le "+new Date(DATA.generatedAt).toLocaleString("fr-FR");
+    render();
+  }catch(e){
+    document.getElementById("app").innerHTML =
+      `<div class="error">Impossible de charger les données.<br>${e.message}</div>`;
+    document.getElementById("sub").textContent = "Erreur de chargement";
+  }
+}
+
+function render(){
+  const props = DATA.properties;
+  const p = props[current];
+  const months = p.months;
+  const totalNights = months.reduce((s,m)=>s+m.nights,0);
+  const totalRev = months.reduce((s,m)=>s+m.revenue,0);
+  const avg = totalNights ? Math.round(totalRev/totalNights) : 0;
+  const best = months.reduce((a,b)=>b.occupancy>a.occupancy?b:a, months[0]||{});
+
+  const tabs = props.map((pr,i)=>
+    `<div class="tab ${i===current?"active":""}" onclick="sel(${i})">${pr.name}</div>`).join("");
+
+  const kpis = `
+    <div class="kpi"><div class="l">Revenu total</div><div class="v">${euro(Math.round(totalRev))}</div></div>
+    <div class="kpi"><div class="l">Nuits vendues</div><div class="v">${totalNights}</div></div>
+    <div class="kpi"><div class="l">Prix moyen / nuit</div><div class="v">${avg} €</div></div>
+    <div class="kpi"><div class="l">Meilleur mois</div><div class="v" style="font-size:15px">${best.month?fmtMonth(best.month):"—"}</div></div>`;
+
+  const rows = months.map(m=>{
+    const hot = m.occupancy>=65 ? "hot" : "";
+    return `<tr class="${hot}">
+      <td>${fmtMonth(m.month)}</td>
+      <td>${m.nights}</td>
+      <td>${pill(m.occupancy)}</td>
+      <td>${m.avgPrice} €</td>
+      <td>${euro(m.revenue)}</td></tr>`;
+  }).join("");
+
+  document.getElementById("app").innerHTML = `
+    <div class="tabs">${tabs}</div>
+    <div class="kpis">${kpis}</div>
+    <div class="charts">
+      <div class="card"><h2>Taux de remplissage</h2><div style="position:relative;height:230px"><canvas id="occ"></canvas></div></div>
+      <div class="card"><h2>Revenus mensuels</h2><div style="position:relative;height:230px"><canvas id="rev"></canvas></div></div>
+    </div>
+    <div class="card"><h2>Détail mensuel</h2>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Mois</th><th>Nuits</th><th>Taux</th><th>Prix moy.</th><th>Revenu</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+
+  const labels = months.map(m=>fmtMonth(m.month));
+  if(occChart) occChart.destroy();
+  occChart = new Chart(document.getElementById("occ"),{
+    type:"bar",
+    data:{labels,datasets:[{data:months.map(m=>m.occupancy),backgroundColor:months.map(m=>occColor(m.occupancy)),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+" %"}}},
+      scales:{y:{max:100,ticks:{callback:v=>v+"%"}},x:{ticks:{font:{size:10},maxRotation:45}}}}
+  });
+  if(revChart) revChart.destroy();
+  revChart = new Chart(document.getElementById("rev"),{
+    type:"bar",
+    data:{labels,datasets:[{data:months.map(m=>m.revenue),backgroundColor:"#2E6CA4",borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>euro(c.parsed.y)}}},
+      scales:{y:{ticks:{callback:v=>v.toLocaleString("fr-FR")+" €"}},x:{ticks:{font:{size:10},maxRotation:45}}}}
+  });
+}
+
+function sel(i){ current=i; render(); }
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+{
+  "name": "Lodgify — email quotidien réservations & tarifs",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "hours", "hoursInterval": 24, "triggerAtHour": 8 }
+          ]
+        }
+      },
+      "name": "Chaque jour à 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "trigger-daily"
+    },
+    {
+      "parameters": {
+        "url": "https://api.lodgify.com/v2/reservations/bookings?page=1&size=100&includeCount=true&stayFilter=Upcoming",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-ApiKey", "value": "={{$env.LODGIFY_API_KEY}}" },
+            { "name": "accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Lodgify — réservations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "id": "http-lodgify"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupère les réservations et construit le résumé + les conseils tarifaires.\nconst resp = $input.first().json;\nconst items = (resp.items || []).filter(b => (b.status || '').toLowerCase() === 'booked');\n\nconst today = new Date();\nconst ymNow = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');\n\nfunction daysInMonth(ym){ const [y,m]=ym.split('-').map(Number); return new Date(y,m,0).getDate(); }\nfunction addMonths(ym,n){ let [y,m]=ym.split('-').map(Number); m+=n; y+=Math.floor((m-1)/12); m=((m-1)%12+12)%12+1; return y+'-'+String(m).padStart(2,'0'); }\n\n// Occupation par propriété et par mois (nuits réparties)\nconst byProp = {};\nfor (const b of items){\n  const pid = b.property_id ?? '?';\n  const name = b.property_name || ('Propriété ' + pid);\n  const start = new Date(b.arrival || b.date_arrival);\n  const end = new Date(b.departure || b.date_departure);\n  if (isNaN(start) || isNaN(end)) continue;\n  byProp[pid] = byProp[pid] || { name, months:{}, arrivals:[] };\n  if (start >= today && (start - today)/86400000 <= 14){\n    byProp[pid].arrivals.push({ arrival:b.arrival, nights:Math.round((end-start)/86400000), total:b.total });\n  }\n  for (let d=new Date(start); d<end; d.setDate(d.getDate()+1)){\n    const ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');\n    byProp[pid].months[ym] = (byProp[pid].months[ym]||0)+1;\n  }\n}\n\n// Conseils tarifaires sur les 3 prochains mois\nconst SEUIL = 35;           // sous ce taux (%) → suggestion de baisse\nconst months3 = [ymNow, addMonths(ymNow,1), addMonths(ymNow,2)];\nconst FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];\nfunction moisFr(ym){ const [y,m]=ym.split('-'); return FR[+m-1]+' '+y; }\n\nlet blocks = '';\nfor (const p of Object.values(byProp)){\n  let arr = p.arrivals.sort((a,b)=> new Date(a.arrival)-new Date(b.arrival))\n    .map(a=>`<li>${new Date(a.arrival).toLocaleDateString('fr-FR')} — ${a.nights} nuit(s)${a.total?` · ${a.total} €`:''}</li>`).join('') || '<li>aucune arrivée sous 14 jours</li>';\n  let advice = '';\n  for (const ym of months3){\n    const nights = p.months[ym]||0;\n    const occ = Math.round(nights/daysInMonth(ym)*100);\n    if (occ < SEUIL){\n      const fort = [6,7,8].includes(+ym.split('-')[1]); // juin-août\n      advice += `<li><b>${moisFr(ym)}</b> : ${occ}% de remplissage — ${fort?'⚠️ mois de haute saison sous-rempli, baisse tarifaire urgente conseillée':'envisager une baisse de prix ou une promo dernière minute'}</li>`;\n    }\n  }\n  if(!advice) advice = '<li>prochains mois bien remplis, rien à signaler ✅</li>';\n  blocks += `<h3 style=\"color:#1F3B5C;margin:18px 0 6px\">${p.name}</h3>`+\n    `<p style=\"margin:2px 0;color:#555\"><b>Arrivées à venir :</b></p><ul>${arr}</ul>`+\n    `<p style=\"margin:8px 0 2px;color:#555\"><b>Conseils tarifaires :</b></p><ul>${advice}</ul>`;\n}\n\nconst html = `<div style=\"font-family:Arial,sans-serif;max-width:640px\">`+\n  `<h2 style=\"color:#1F3B5C\">Point quotidien — ${today.toLocaleDateString('fr-FR')}</h2>`+\n  `<p style=\"color:#555\">Total réservations à venir : <b>${items.length}</b></p>`+\n  blocks +\n  `<p style=\"color:#999;font-size:12px;margin-top:20px\">Généré automatiquement depuis l'API Lodgify.</p></div>`;\n\nreturn [{ json: { html, subject: `Réservations & tarifs — ${today.toLocaleDateString('fr-FR')}` } }];"
+      },
+      "name": "Calcul & conseils",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "id": "code-compute"
+    },
+    {
+      "parameters": {
+        "fromEmail": "reporting@ton-domaine.fr",
+        "toEmail": "TON_EMAIL@exemple.fr",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "name": "Envoyer l'email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 300],
+      "id": "send-email"
+    }
+  ],
+  "connections": {
+    "Chaque jour à 8h": { "main": [[{ "node": "Lodgify — réservations", "type": "main", "index": 0 }]] },
+    "Lodgify — réservations": { "main": [[{ "node": "Calcul & conseils", "type": "main", "index": 0 }]] },
+    "Calcul & conseils": { "main": [[{ "node": "Envoyer l'email", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

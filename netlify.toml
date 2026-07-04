@@ -1,0 +1,11 @@
+# Configuration Netlify — compatible glisser-déposer (sans étape de build)
+
+[build]
+  publish = "public"                 # le tableau de bord (fichiers statiques)
+  functions = "netlify/functions"    # la fonction serverless
+
+# Redirection propre (optionnel)
+[[redirects]]
+  from = "/api/reporting"
+  to = "/.netlify/functions/reporting"
+  status = 200

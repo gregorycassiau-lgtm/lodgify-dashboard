@@ -1,0 +1,12 @@
+{
+  "name": "lodgify-dashboard",
+  "version": "1.0.0",
+  "description": "Tableau de bord locatif en direct depuis l'API Lodgify, hébergé sur Netlify.",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "netlify dev"
+  }
+}

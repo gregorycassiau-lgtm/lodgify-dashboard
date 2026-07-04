@@ -129,7 +129,7 @@ exports.handler = async () => {
     const stats = computeStats(bookings, names);
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=1800" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
       body: JSON.stringify({ generatedAt: new Date().toISOString(), today: new Date().toISOString().slice(0,10), properties: stats }),
     };
   } catch (err) {

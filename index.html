@@ -53,6 +53,11 @@
   .gaplist li{padding:6px 0;border-bottom:1px solid var(--border);}
   .gaplist li:last-child{border-bottom:none;}
   .minstay{font-size:13px;line-height:1.5;padding:10px 12px;border-radius:8px;background:#FFF9EE;border:1px solid #F0E2C4;margin-top:10px;}
+  .ytabs{display:flex;gap:6px;margin-bottom:10px;}
+  .ytab{padding:4px 12px;border-radius:6px;font-size:12px;cursor:pointer;background:var(--lightgrey);color:var(--grey);}
+  .ytab.active{background:var(--navy);color:#fff;font-weight:600;}
+  .yoy{font-size:10.5px;font-weight:600;margin-top:2px;}
+  .diag{background:#FCEBEB;color:#A32D2D;padding:8px 12px;border-radius:8px;font-size:12.5px;margin-bottom:10px;line-height:1.4;}
   @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr);}.charts{grid-template-columns:1fr;}.advice{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -77,7 +82,7 @@ function daysInMonth(ym){const[y,m]=ym.split("-").map(Number);return new Date(y,
 function fmtDay(iso){const[y,m,d]=iso.split("-");return`${+d} ${FR_MONTHS[+m-1]}`;}
 const YEAR=new Date().getFullYear(), PREV=YEAR-1;
 
-let DATA=null,VIEWS=[],current=0,occChart=null,revChart=null;
+let DATA=null,VIEWS=[],current=0,detailYear=null,occChart=null,revChart=null;
 
 async function load(){
   try{
@@ -196,10 +201,15 @@ function render(){
   const j60=priceCard(windowOcc(view,21,60),"J-60");
 
   // Rythme vs l'an dernier
-  const y=view.ytd||{thisYear:{revenue:0},lastYear:{revenue:0}};
+  const dataMissing = !view.ytd || !view.cal || view.cal.length===0;
+  const diag = dataMissing
+    ? `<div class="diag">⚠️ La fonction <b>reporting.js</b> ne renvoie pas encore le calendrier jour par jour. Redéploie-la (puis attends ~5 min ou force le rafraîchissement) pour des conseils propres à chaque maison.</div>` : "";
+  const y=view.ytd;
   let pace;
-  if(!y.lastYear||y.lastYear.revenue===0){
-    pace=`Pas de comparaison possible : aucune activité à la même date en ${PREV} (annonce plus récente).`;
+  if(!view.ytd){
+    pace=`Rythme indisponible tant que la fonction n'est pas à jour.`;
+  }else if(y.lastYear.revenue===0){
+    pace=`Pas d'activité à la même date en ${PREV} pour cette maison (annonce plus récente).`;
   }else{
     const d=y.thisYear.revenue-y.lastYear.revenue, up=d>=0, pc=Math.round(d/y.lastYear.revenue*100);
     pace=`À la même date en ${PREV}, tu avais réservé <b>${euro(y.lastYear.revenue)}</b>. Cette année : <b>${euro(y.thisYear.revenue)}</b> `+
@@ -236,6 +246,7 @@ function render(){
 
     <div class="card">
       <h2>Conseils tarifaires — 60 prochains jours</h2>
+      ${diag}
       <div class="pace">📈 ${pace}</div>
       <div class="advice">
         ${[["J-7","0 à 7 jours",j7],["J-21","8 à 21 jours",j21],["J-60","22 à 60 jours",j60]].map(([h,sub,c])=>`
@@ -255,12 +266,7 @@ function render(){
       <div class="card"><h2>Taux de remplissage (historique)</h2><div style="position:relative;height:230px"><canvas id="occ"></canvas></div></div>
       <div class="card"><h2>Revenus mensuels (historique)</h2><div style="position:relative;height:230px"><canvas id="rev"></canvas></div></div>
     </div>
-    <div class="card"><h2>Détail mensuel</h2>
-      <div style="overflow-x:auto"><table>
-        <thead><tr><th>Mois</th><th>Nuits</th><th>Taux</th><th>Prix moy.</th><th>Revenu</th></tr></thead>
-        <tbody>${months.map(m=>`<tr class="${m.occupancy>=65?"hot":""}"><td>${fmtMonth(m.month)}</td><td>${m.nights}</td><td>${pill(m.occupancy)}</td><td>${m.avgPrice} €</td><td>${euro(m.revenue)}</td></tr>`).join("")}</tbody>
-      </table></div>
-    </div>`;
+    ${buildDetailTable(view)}`;
 
   const labels=months.map(m=>fmtMonth(m.month));
   if(occChart)occChart.destroy();
@@ -275,7 +281,37 @@ function render(){
       scales:{y:{ticks:{callback:v=>v.toLocaleString("fr-FR")+" €"}},x:{ticks:{font:{size:10},maxRotation:45}}}}});
 }
 
+// Tableau détail avec onglets par année + comparaison N-1
+function buildDetailTable(view){
+  const years=[...new Set(view.months.map(m=>m.month.slice(0,4)))].sort();
+  if(detailYear===null||!years.includes(detailYear)) detailYear=years[years.length-1];
+  const tabs=years.map(yr=>`<span class="ytab ${yr===detailYear?"active":""}" onclick="selYear('${yr}')">${yr}</span>`).join("");
+  const hasPrev=years.includes(String(+detailYear-1));
+  const rows=view.months.filter(m=>m.month.startsWith(detailYear)).map(m=>{
+    const pm=view.months.find(x=>x.month===String(+detailYear-1)+m.month.slice(4));
+    function yoy(cur,prev){
+      if(!pm||!prev)return"";
+      const pct=Math.round((cur-prev)/prev*100), up=pct>=0;
+      return `<div class="yoy" style="color:${up?"var(--green)":"var(--red)"}">${up?"+":""}${pct}%</div>`;
+    }
+    return `<tr class="${m.occupancy>=65?"hot":""}">
+      <td>${fmtMonth(m.month)}</td>
+      <td>${m.nights}${yoy(m.nights,pm&&pm.nights)}</td>
+      <td>${pill(m.occupancy)}${yoy(m.occupancy,pm&&pm.occupancy)}</td>
+      <td>${m.avgPrice} €${yoy(m.avgPrice,pm&&pm.avgPrice)}</td>
+      <td>${euro(m.revenue)}${yoy(m.revenue,pm&&pm.revenue)}</td></tr>`;
+  }).join("");
+  const note=hasPrev?`Comparaison avec ${+detailYear-1} (même mois) : <span style="color:var(--green)">vert</span> = hausse, <span style="color:var(--red)">rouge</span> = baisse.`:`Pas d'année précédente disponible pour comparer.`;
+  return `<div class="card"><h2>Détail mensuel</h2>
+    <div class="ytabs">${tabs}</div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Mois</th><th>Nuits</th><th>Taux</th><th>Prix moy.</th><th>Revenu</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="note">${note}</div></div>`;
+}
+
 function sel(i){current=i;render();}
+function selYear(y){detailYear=y;render();}
 load();
 </script>
 </body>

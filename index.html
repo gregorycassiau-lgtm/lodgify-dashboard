@@ -58,6 +58,8 @@
   .ytab.active{background:var(--navy);color:#fff;font-weight:600;}
   .yoy{font-size:10.5px;font-weight:600;margin-top:2px;}
   .diag{background:#FCEBEB;color:#A32D2D;padding:8px 12px;border-radius:8px;font-size:12.5px;margin-bottom:10px;line-height:1.4;}
+  .copybtn{padding:8px 14px;border:1px solid var(--blue);background:#E6F1FB;color:var(--blue);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin:2px 8px 10px 0;}
+  .copybtn:hover{background:#d6e8f9;}
   @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr);}.charts{grid-template-columns:1fr;}.advice{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -315,13 +317,31 @@ function buildDetailTable(view){
     <div class="note">${note}</div></div>`;
 }
 
-// Planning ménage — 30 prochains jours
+// Planning ménage — 60 prochains jours + message SMS copiable
 function fmtDayFull(iso){const[y,m,d]=iso.split("-");return`${+d} ${FR_MONTHS[+m-1]}`;}
+const JOURS=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+function dateSms(iso){const d=new Date(iso+"T00:00:00");const[y,m,dd]=iso.split("-");return`${JOURS[d.getDay()]} ${+dd} ${FR_LONG[+m-1]}`;}
+function buildMsg(list){
+  const lignes=list.map(t=>{
+    let s="- "+dateSms(t.checkout);
+    if(t.sameDay)s+=" (⚠️ ménage express, arrivée le jour même)";
+    return s;
+  }).join("\n");
+  return `Bonjour ! \nVoici les prochains ménages à prévoir : \n${lignes}\n\nBonne journée ☀️`;
+}
+window.CLEAN_MSGS={};
+function copyMsg(id,btn){
+  const txt=window.CLEAN_MSGS[id];if(!txt)return;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const old=btn.textContent;btn.textContent="✓ Copié !";setTimeout(()=>btn.textContent=old,1600);
+  }).catch(()=>{alert("Copie impossible — sélectionne et copie manuellement :\n\n"+txt);});
+}
 function buildCleaningCard(view){
-  const limit=new Date();limit.setDate(limit.getDate()+30);
+  const limit=new Date();limit.setDate(limit.getDate()+60);
   const limitIso=limit.toISOString().slice(0,10);
   const list=(view.turnovers||[]).filter(t=>t.checkout<=limitIso);
-  if(!list.length) return `<div class="card"><h2>🧹 Planning ménage — 30 prochains jours</h2><div class="note">Aucun départ prévu sur les 30 prochains jours.</div></div>`;
+  window.CLEAN_MSGS={};
+  if(!list.length) return `<div class="card"><h2>🧹 Planning ménage — 60 prochains jours</h2><div class="note">Aucun départ prévu sur les 60 prochains jours.</div></div>`;
   const express=list.filter(t=>t.sameDay).length;
   const rows=list.map(t=>{
     let status,color;
@@ -332,8 +352,25 @@ function buildCleaningCard(view){
     const house=view.isTotal?`<span style="color:var(--blue);font-weight:600">${t.house}</span> · `:"";
     return `<li><b>${fmtDayFull(t.checkout)}</b> — ${house}<span style="color:${color}">${status}</span></li>`;
   }).join("");
-  return `<div class="card"><h2>🧹 Planning ménage — 30 prochains jours</h2>
+
+  // Boutons copier-coller
+  let buttons="";
+  if(view.isTotal){
+    const byHouse={};
+    for(const t of list)(byHouse[t.house]=byHouse[t.house]||[]).push(t);
+    let i=0;
+    for(const [house,items] of Object.entries(byHouse)){
+      const id="h"+(i++);window.CLEAN_MSGS[id]=buildMsg(items);
+      buttons+=`<button class="copybtn" onclick="copyMsg('${id}',this)">📋 Copier — ${house}</button>`;
+    }
+  }else{
+    window.CLEAN_MSGS["single"]=buildMsg(list);
+    buttons=`<button class="copybtn" onclick="copyMsg('single',this)">📋 Copier le message pour SMS</button>`;
+  }
+
+  return `<div class="card"><h2>🧹 Planning ménage — 60 prochains jours</h2>
     <div class="note" style="margin-top:0;margin-bottom:8px"><b>${list.length} ménage${list.length>1?"s":""}</b> à prévoir${express?`, dont <b style="color:var(--red)">${express} le jour même</b>`:""}.</div>
+    <div>${buttons}</div>
     <ul class="gaplist">${rows}</ul></div>`;
 }
 

@@ -112,8 +112,8 @@ function computeStats(bookings, names) {
       next60.push({ date: iso(d), booked: data.booked.has(iso(d)) });
     }
 
-    // Planning ménage : départs des 45 prochains jours + prochaine arrivée
-    const horizon = new Date(today); horizon.setUTCDate(horizon.getUTCDate() + 45);
+    // Planning ménage : départs des 60 prochains jours + prochaine arrivée
+    const horizon = new Date(today); horizon.setUTCDate(horizon.getUTCDate() + 60);
     const horizonIso = iso(horizon);
     const arrivals = data.stays.map(s => s.arrival).sort();
     const turnovers = data.stays

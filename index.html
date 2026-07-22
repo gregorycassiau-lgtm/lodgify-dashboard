@@ -86,11 +86,28 @@ const YEAR=new Date().getFullYear(), PREV=YEAR-1;
 
 let DATA=null,VIEWS=[],current=0,detailYear=null,occChart=null,revChart=null;
 
+// Réessaie automatiquement : au premier appel, la fonction peut être "à froid"
+// et dépasser le délai. Une 2e tentative aboutit alors presque toujours.
+async function fetchReporting(tries=3){
+  let lastErr;
+  for(let i=0;i<tries;i++){
+    try{
+      const res=await fetch("/.netlify/functions/reporting",{cache:"no-store"});
+      if(res.ok) return await res.json();
+      lastErr=new Error("Erreur "+res.status);
+    }catch(e){ lastErr=e; }
+    if(i<tries-1){
+      document.getElementById("sub").textContent=
+        `Le service se réveille… nouvelle tentative (${i+2}/${tries})`;
+      await new Promise(r=>setTimeout(r,2000));
+    }
+  }
+  throw lastErr;
+}
+
 async function load(){
   try{
-    const res=await fetch("/.netlify/functions/reporting");
-    if(!res.ok)throw new Error("Erreur "+res.status);
-    DATA=await res.json();
+    DATA=await fetchReporting();
     if(!DATA.properties||DATA.properties.length===0)throw new Error("Aucune réservation trouvée.");
     // Prépare le calendrier normalisé (occ 0..1) pour chaque maison
     for(const p of DATA.properties){
@@ -101,7 +118,7 @@ async function load(){
     document.getElementById("sub").textContent="Mis à jour le "+new Date(DATA.generatedAt).toLocaleString("fr-FR");
     render();
   }catch(e){
-    document.getElementById("app").innerHTML=`<div class="error">Impossible de charger les données.<br>${e.message}</div>`;
+    document.getElementById("app").innerHTML=`<div class="error">Impossible de charger les données après plusieurs tentatives.<br>${e.message}<br><br><button class="copybtn" onclick="location.reload()">Réessayer</button></div>`;
     document.getElementById("sub").textContent="Erreur de chargement";
   }
 }

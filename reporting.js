@@ -16,19 +16,31 @@ async function lodgify(path, key) {
   return res.json();
 }
 
-async function getAllBookings(key) {
-  let page = 1, all = [], count = Infinity;
-  while (all.length < count) {
-    const data = await lodgify(
-      `/reservations/bookings?page=${page}&size=50&includeCount=true&stayFilter=All`, key);
-    const items = data.items || [];
-    count = Number.isFinite(data.count) ? data.count : items.length;
-    all = all.concat(items);
-    if (items.length === 0) break;
-    page++;
-    if (page > 60) break;
-  }
-  return all;
+// Récupère toutes les réservations.
+// Optimisé : 100 par page, pages suivantes en parallèle, budget de temps —
+// pour rester sous la limite de 10 s, y compris au démarrage à froid.
+async function getAllBookings(key, deadline) {
+  const SIZE = 100;
+  const first = await lodgify(
+    `/reservations/bookings?page=1&size=${SIZE}&includeCount=true&stayFilter=All`, key);
+  const items = first.items || [];
+  const count = Number.isFinite(first.count) ? first.count : items.length;
+  const pages = Math.min(Math.ceil(count / SIZE), 20);
+  if (pages <= 1) return items;
+
+  const rest = [];
+  for (let p = 2; p <= pages; p++) rest.push(p);
+
+  const results = await Promise.all(rest.map(async (p) => {
+    if (Date.now() > deadline) return [];   // budget dépassé : on s'arrête proprement
+    try {
+      const d = await lodgify(
+        `/reservations/bookings?page=${p}&size=${SIZE}&includeCount=true&stayFilter=All`, key);
+      return d.items || [];
+    } catch { return []; }                  // une page en échec ne fait pas tomber le tout
+  }));
+
+  return items.concat(...results);
 }
 
 async function getPropertyNames(key) {
@@ -142,11 +154,12 @@ exports.handler = async () => {
   const key = process.env.LODGIFY_API_KEY;
   if (!key) return { statusCode: 500, body: JSON.stringify({ error: "LODGIFY_API_KEY manquante" }) };
   try {
-    const [bookings, names] = await Promise.all([getAllBookings(key), getPropertyNames(key)]);
+    const deadline = Date.now() + 7000; // marge de sécurité sous la limite de 10 s
+    const [bookings, names] = await Promise.all([getAllBookings(key, deadline), getPropertyNames(key)]);
     const stats = computeStats(bookings, names);
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=600, stale-while-revalidate=3600" },
       body: JSON.stringify({ generatedAt: new Date().toISOString(), today: new Date().toISOString().slice(0,10), properties: stats }),
     };
   } catch (err) {

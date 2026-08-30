@@ -337,11 +337,15 @@ function buildDetailTable(view){
 // Planning ménage — 60 prochains jours + message SMS copiable
 function fmtDayFull(iso){const[y,m,d]=iso.split("-");return`${+d} ${FR_MONTHS[+m-1]}`;}
 const JOURS=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+const JOURS_C=["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
 function dateSms(iso){const d=new Date(iso+"T00:00:00");const[y,m,dd]=iso.split("-");return`${JOURS[d.getDay()]} ${+dd} ${FR_LONG[+m-1]}`;}
+function fmtDayW(iso){const d=new Date(iso+"T00:00:00");const[y,m,dd]=iso.split("-");return`${JOURS_C[d.getDay()]} ${+dd} ${FR_MONTHS[+m-1]}`;}
 function buildMsg(list){
   const lignes=list.map(t=>{
-    let s="- "+dateSms(t.checkout);
-    if(t.sameDay)s+=" (⚠️ ménage express, arrivée le jour même)";
+    let s="- Départ "+dateSms(t.checkout);
+    if(t.sameDay) s+=` → arrivée le jour même (${dateSms(t.nextCheckin)}) ⚠️ ménage express`;
+    else if(t.nextCheckin) s+=` → prochaine arrivée ${dateSms(t.nextCheckin)} (${t.gapDays} jour${t.gapDays>1?"s":""} pour intervenir)`;
+    else s+=" → pas d'arrivée programmée ensuite";
     return s;
   }).join("\n");
   return `Bonjour ! \nVoici les prochains ménages à prévoir : \n${lignes}\n\nBonne journée ☀️`;
@@ -361,13 +365,15 @@ function buildCleaningCard(view){
   if(!list.length) return `<div class="card"><h2>🧹 Planning ménage — 60 prochains jours</h2><div class="note">Aucun départ prévu sur les 60 prochains jours.</div></div>`;
   const express=list.filter(t=>t.sameDay).length;
   const rows=list.map(t=>{
-    let status,color;
-    if(t.sameDay){status="⚠️ Départ + arrivée le même jour — ménage express";color="var(--red)";}
-    else if(t.gapDays!==null&&t.gapDays<=2){status=`Arrivée dans ${t.gapDays} j — ménage sous ${t.gapDays} j`;color="var(--amber)";}
-    else if(t.nextCheckin){status=`Prochaine arrivée le ${fmtDayFull(t.nextCheckin)}`;color="var(--grey)";}
-    else{status="Pas d'arrivée proche — à planifier";color="var(--grey)";}
+    let arriv,color;
+    if(t.sameDay){arriv=`⚠️ Arrivée le <b>jour même</b> (${fmtDayW(t.nextCheckin)}) — ménage express`;color="var(--red)";}
+    else if(t.nextCheckin){arriv=`Prochaine arrivée : <b>${fmtDayW(t.nextCheckin)}</b> — ${t.gapDays} jour${t.gapDays>1?"s":""} pour intervenir`;color=(t.gapDays<=2?"var(--amber)":"var(--grey)");}
+    else{arriv="Pas d'arrivée programmée ensuite — à planifier librement";color="var(--grey)";}
     const house=view.isTotal?`<span style="color:var(--blue);font-weight:600">${t.house}</span> · `:"";
-    return `<li><b>${fmtDayFull(t.checkout)}</b> — ${house}<span style="color:${color}">${status}</span></li>`;
+    return `<li style="padding:9px 0">
+      <div>${house}<b>Départ : ${fmtDayW(t.checkout)}</b></div>
+      <div style="color:${color};font-size:12.5px;margin-top:2px">→ ${arriv}</div>
+    </li>`;
   }).join("");
 
   // Boutons copier-coller

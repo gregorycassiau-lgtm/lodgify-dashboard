@@ -69,6 +69,7 @@
     <h1>Reporting locatif — données en direct</h1>
     <div class="sub" id="sub">Chargement des données Lodgify…</div>
   </header>
+  <div id="signalements"></div>
   <div id="app"><div class="loading">Chargement…</div></div>
 </div>
 
@@ -399,6 +400,31 @@ function buildCleaningCard(view){
 
 function sel(i){current=i;render();}
 function selYear(y){detailYear=y;render();}
+// Signalements des femmes de ménage (lecture Supabase)
+const SB_URL="https://yzwvcohhbphbjzizdypz.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6d3Zjb2hoYnBoYmp6aXpkeXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDAwNjQsImV4cCI6MjEwMzY3NjA2NH0.VICwatNyWXWTPeLOoKFPJpFhE9CcHQuVhn0rL1l2GsY";
+const MAISON_LABEL={royan:"Gîte de Royan",bordeaux:"Maison de Bordeaux"};
+async function loadSignalements(){
+  try{
+    const res=await fetch(SB_URL+"/rest/v1/signalements?select=*&order=created_at.desc&limit=15",{headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}});
+    if(!res.ok)return;
+    const rows=await res.json();
+    const el=document.getElementById("signalements");
+    if(!rows.length){el.innerHTML="";return;}
+    const items=rows.map(r=>{
+      const when=new Date(r.created_at).toLocaleString("fr-FR",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+      const maison=MAISON_LABEL[r.maison]||r.maison;
+      const w=`<span style="color:var(--grey);font-size:12px">— ${when}</span>`;
+      if(r.type==="maison_prete") return `<li style="padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--green)">✅ ${maison} prête</b> ${w}</li>`;
+      const prods=(r.produits||[]).join(", ")+(r.commentaire?((r.produits&&r.produits.length)?" · ":"")+r.commentaire:"");
+      return `<li style="padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--amber)">🧴 ${maison} — manque :</b> ${prods} ${w}</li>`;
+    }).join("");
+    el.innerHTML=`<div class="card"><h2>📨 Signalements femmes de ménage</h2><ul style="list-style:none">${items}</ul></div>`;
+  }catch(e){}
+}
+loadSignalements();
+setInterval(loadSignalements,120000); // rafraîchit toutes les 2 min
+
 load();
 </script>
 </body>

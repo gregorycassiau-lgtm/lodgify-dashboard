@@ -1,0 +1,14 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/reporting"
+  to = "/.netlify/functions/reporting"
+  status = 200
+
+# Pages femmes de ménage : /menage/royan, /menage/bordeaux
+[[redirects]]
+  from = "/menage/*"
+  to = "/menage.html"
+  status = 200

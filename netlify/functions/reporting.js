@@ -96,7 +96,34 @@ function computeStats(bookings, names) {
       };
     }
     const P = byProp[propId];
-    P.stays.push({ arrival: iso(new Date(arrival)), departure: iso(new Date(departure)) });
+
+    // Infos voyageurs (défensif : les noms de champs varient selon la source)
+    let people = b.people ?? b.guests ?? b.number_of_guests ?? null;
+    let adults = 0, children = 0, infants = 0, pets = 0, hasBreak = false;
+    const addBreak = (gb) => {
+      if (!gb) return;
+      if (gb.adults != null || gb.children != null || gb.infants != null || gb.pets != null) {
+        hasBreak = true;
+        adults += gb.adults || 0; children += gb.children || 0;
+        infants += gb.infants || 0; pets += gb.pets || 0;
+      }
+    };
+    addBreak(b.guest_breakdown || b.guestBreakdown);
+    if (Array.isArray(b.rooms)) {
+      for (const r of b.rooms) {
+        addBreak(r.guest_breakdown || r.guestBreakdown || r.people_breakdown);
+        if (people == null && r.people != null) people = (people || 0) + r.people;
+      }
+    }
+    if (people == null && hasBreak) people = adults + children + infants;
+
+    P.stays.push({
+      arrival: iso(new Date(arrival)),
+      departure: iso(new Date(departure)),
+      nights: nights.length,
+      people,
+      breakdown: hasBreak ? { adults, children, infants, pets } : null,
+    });
     for (const d of nights) {
       const ym = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
       if (!P.months[ym]) P.months[ym] = { nights: 0, revenue: 0 };
@@ -128,6 +155,8 @@ function computeStats(bookings, names) {
     const horizon = new Date(today); horizon.setUTCDate(horizon.getUTCDate() + 365);
     const horizonIso = iso(horizon);
     const arrivals = data.stays.map(s => s.arrival).sort();
+    const stayByArrival = {};
+    for (const s of data.stays) if (!stayByArrival[s.arrival]) stayByArrival[s.arrival] = s;
     const turnovers = data.stays
       .filter(s => s.departure >= iso(today) && s.departure <= horizonIso)
       .map(s => {
@@ -135,7 +164,13 @@ function computeStats(bookings, names) {
         const sameDay = nextCheckin === s.departure;
         const gapDays = nextCheckin
           ? Math.round((new Date(nextCheckin) - new Date(s.departure)) / 86400000) : null;
-        return { checkout: s.departure, nextCheckin, sameDay, gapDays };
+        // Infos du prochain voyageur (celui qui arrive à nextCheckin)
+        let nextGuest = null;
+        if (nextCheckin && stayByArrival[nextCheckin]) {
+          const ns = stayByArrival[nextCheckin];
+          nextGuest = { people: ns.people, nights: ns.nights, breakdown: ns.breakdown };
+        }
+        return { checkout: s.departure, nextCheckin, sameDay, gapDays, nextGuest };
       })
       .sort((a, b) => a.checkout.localeCompare(b.checkout));
 

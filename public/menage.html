@@ -16,31 +16,31 @@
   .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px 16px;margin-bottom:16px;
         box-shadow:0 1px 3px rgba(0,0,0,.03);}
   .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--grey);margin-bottom:14px;font-weight:700;}
-  .clean{display:flex;gap:12px;padding:14px;border-radius:12px;margin-bottom:10px;border:1px solid var(--border);
-         border-left-width:5px;align-items:flex-start;}
-  .clean:last-child{margin-bottom:0;}
+
+  .stay{border:1px solid var(--border);border-left-width:5px;border-radius:12px;padding:13px 14px;margin-bottom:11px;}
+  .stay:last-child{margin-bottom:0;}
   .cl-red{border-left-color:var(--red);background:var(--soft-red);}
   .cl-amber{border-left-color:var(--amber);background:var(--soft-amber);}
   .cl-blue{border-left-color:var(--blue);background:var(--soft-blue);}
   .cl-grey{border-left-color:#B8BEC7;background:var(--soft-grey);}
-  .datebox{flex:0 0 52px;text-align:center;background:#fff;border-radius:10px;padding:6px 2px;border:1px solid var(--border);}
-  .datebox .d{font-size:20px;font-weight:800;color:var(--navy);line-height:1;}
-  .datebox .m{font-size:11px;text-transform:uppercase;color:var(--grey);margin-top:2px;font-weight:600;}
-  .datebox .w{font-size:10px;color:var(--grey);margin-top:1px;}
-  .cl-body{flex:1;min-width:0;}
-  .cl-title{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:3px;}
-  .cl-info{font-size:13px;color:#444;line-height:1.4;}
-  .guest{font-size:12.5px;color:var(--navy);font-weight:600;margin-top:6px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px 9px;display:inline-block;}
-  .badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;margin-top:6px;}
-  .bg-red{background:var(--red);color:#fff;}
-  .bg-amber{background:var(--amber);color:#fff;}
-  .bg-blue{background:var(--blue);color:#fff;}
-  .bg-grey{background:#8A909B;color:#fff;}
-  .next-flag{font-size:10.5px;font-weight:800;color:var(--green);letter-spacing:.04em;margin-bottom:6px;}
-  .showmore{width:100%;padding:12px;border:1px dashed var(--border);background:#fff;border-radius:10px;
-            color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;}
-  .bigbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:18px;border-radius:14px;
-          border:none;font-size:17px;font-weight:800;cursor:pointer;margin-bottom:12px;color:#fff;}
+  .next-flag{font-size:10.5px;font-weight:800;color:var(--green);letter-spacing:.04em;margin-bottom:8px;}
+
+  /* Deux dates côte à côte */
+  .dates{display:flex;align-items:stretch;gap:8px;margin-bottom:10px;}
+  .dbx{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:7px 6px;text-align:center;}
+  .dbx .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--grey);font-weight:700;}
+  .dbx .dnum{font-size:22px;font-weight:800;color:var(--navy);line-height:1.05;}
+  .dbx .dsub{font-size:11px;color:var(--grey);}
+  .arrow{display:flex;align-items:center;color:var(--grey);font-size:18px;font-weight:700;}
+
+  .task{font-size:13.5px;color:#333;line-height:1.4;margin-bottom:6px;}
+  .guest{font-size:12.5px;color:var(--navy);font-weight:600;background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px 9px;display:inline-block;margin-bottom:8px;}
+  .badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;}
+  .bg-red{background:var(--red);color:#fff;}.bg-amber{background:var(--amber);color:#fff;}
+  .bg-blue{background:var(--blue);color:#fff;}.bg-grey{background:#8A909B;color:#fff;}
+  .showmore{width:100%;padding:12px;border:1px dashed var(--border);background:#fff;border-radius:10px;color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;}
+
+  .bigbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:18px;border-radius:14px;border:none;font-size:17px;font-weight:800;cursor:pointer;margin-bottom:12px;color:#fff;}
   .b-green{background:var(--green);}.b-green:active{background:#166d50;}
   .b-amber{background:var(--amber);}.b-amber:active{background:#a4630f;}
   .hint{font-size:12.5px;color:var(--grey);text-align:center;margin-top:-4px;margin-bottom:4px;}
@@ -59,7 +59,7 @@
 <div class="sub" id="sub">Chargement…</div>
 
 <div class="card">
-  <h2>🧹 Prochains ménages</h2>
+  <h2>🧹 Prochains séjours</h2>
   <div id="plan"><div class="loading">Chargement du planning…</div></div>
 </div>
 
@@ -110,10 +110,8 @@ async function enregistrer(payload){
 }
 function whatsapp(texte){window.open("https://wa.me/"+WHATSAPP_NUMERO+"?text="+encodeURIComponent(texte),"_blank");}
 async function maisonPrete(btn){
-  btn.disabled=true;
-  await enregistrer({maison:slug,type:"maison_prete"});
-  toast("Merci ! Signalement envoyé ✅");
-  whatsapp(`Bonjour ! ${maison.label} est prête ✅`);
+  btn.disabled=true;await enregistrer({maison:slug,type:"maison_prete"});
+  toast("Merci ! Signalement envoyé ✅");whatsapp(`Bonjour ! ${maison.label} est prête ✅`);
   setTimeout(()=>btn.disabled=false,1500);
 }
 function toggleProduits(){document.getElementById("produitsBox").classList.toggle("hidden");}
@@ -121,11 +119,9 @@ async function envoyerManque(btn){
   const coches=[...document.querySelectorAll("#prodList input:checked")].map(c=>c.value);
   const autre=document.getElementById("autreProduit").value.trim();
   if(coches.length===0 && !autre){toast("Cochez au moins un produit");return;}
-  btn.disabled=true;
-  await enregistrer({maison:slug,type:"manque_produit",produits:coches,commentaire:autre||null});
+  btn.disabled=true;await enregistrer({maison:slug,type:"manque_produit",produits:coches,commentaire:autre||null});
   const liste=[...coches, ...(autre?[autre]:[])].map(p=>"- "+p).join("\n");
-  toast("Merci ! Liste envoyée ✅");
-  whatsapp(`Bonjour ! Il manque des produits à ${maison.label} :\n${liste}`);
+  toast("Merci ! Liste envoyée ✅");whatsapp(`Bonjour ! Il manque des produits à ${maison.label} :\n${liste}`);
   setTimeout(()=>{btn.disabled=false;document.getElementById("produitsBox").classList.add("hidden");
     document.querySelectorAll("#prodList input:checked").forEach(c=>c.checked=false);
     document.getElementById("autreProduit").value="";},1500);
@@ -138,33 +134,41 @@ function jour(iso){return +iso.split("-")[2];}
 function moisC(iso){return FR_MONTHS[+iso.split("-")[1]-1];}
 function fmtLong(iso){return `${dW(iso)} ${jour(iso)} ${moisC(iso)}`;}
 
-function guestLine(t){
-  const g=t.nextGuest;
-  if(!g) return "";
+function guestLine(st){
   const parts=[];
-  if(g.people!=null) parts.push(`👥 ${g.people} personne${g.people>1?"s":""}`);
-  if(g.breakdown && g.breakdown.infants>0) parts.push(`👶 bébé${g.breakdown.infants>1?"s":""}`);
-  if(g.breakdown && g.breakdown.pets>0) parts.push(`🐾 animal`);
-  if(g.nights!=null) parts.push(`🛏️ ${g.nights} nuit${g.nights>1?"s":""}`);
+  if(st.people!=null) parts.push(`👥 ${st.people} personne${st.people>1?"s":""}`);
+  if(st.breakdown && st.breakdown.infants>0) parts.push(`👶 bébé${st.breakdown.infants>1?"s":""}`);
+  if(st.breakdown && st.breakdown.pets>0) parts.push(`🐾 animal`);
+  if(st.nights!=null) parts.push(`🛏️ ${st.nights} nuit${st.nights>1?"s":""}`);
   if(!parts.length) return "";
   return `<div class="guest">${parts.join(" &nbsp;·&nbsp; ")}</div>`;
 }
-function itemHTML(t,isNext){
-  let cls,badgeCls,badge,info;
-  if(t.sameDay){cls="cl-red";badgeCls="bg-red";badge="⚡ URGENT";info=`Nouveau voyageur <b>le jour même</b> — ménage à faire dans la journée.`;}
-  else if(t.nextCheckin && t.gapDays<=2){cls="cl-amber";badgeCls="bg-amber";badge=`Sous ${t.gapDays} j`;info=`Prochain voyageur le <b>${fmtLong(t.nextCheckin)}</b> — ${t.gapDays} jour${t.gapDays>1?"s":""} pour intervenir.`;}
-  else if(t.nextCheckin && t.gapDays<=7){cls="cl-blue";badgeCls="bg-blue";badge=`${t.gapDays} j`;info=`Prochain voyageur le <b>${fmtLong(t.nextCheckin)}</b> — vous avez ${t.gapDays} jours.`;}
-  else if(t.nextCheckin){cls="cl-grey";badgeCls="bg-grey";badge="Pas pressé";info=`Prochain voyageur le <b>${fmtLong(t.nextCheckin)}</b>.`;}
-  else{cls="cl-grey";badgeCls="bg-grey";badge="Pas pressé";info="Pas de voyageur prévu ensuite — aucune urgence.";}
-  return `<div class="clean ${cls}">
-    <div class="datebox"><div class="w">${dW(t.checkout)}</div><div class="d">${jour(t.checkout)}</div><div class="m">${moisC(t.checkout)}</div></div>
-    <div class="cl-body">
-      ${isNext?'<div class="next-flag">▸ PROCHAIN MÉNAGE</div>':''}
-      <div class="cl-title">Ménage du ${fmtLong(t.checkout)}</div>
-      <div class="cl-info">${info}</div>
-      ${guestLine(t)}
-      <span class="badge ${badgeCls}">${badge}</span>
+
+function stayHTML(st,isNext){
+  let cls,badgeCls,badge,task;
+  if(st.ongoing){
+    cls="cl-blue";badgeCls="bg-blue";badge="EN COURS";
+    task=`Voyageurs actuellement sur place — ils repartent le <b>${fmtLong(st.departure)}</b>.`;
+  } else if(st.sameDayRotation){
+    cls="cl-red";badgeCls="bg-red";badge="⚡ MÊME JOUR";
+    task=`Le voyageur précédent part le <b>jour même</b> de cette arrivée — ménage express le ${fmtLong(st.arrival)}.`;
+  } else if(st.turnaroundDays!=null && st.turnaroundDays<=2){
+    cls="cl-amber";badgeCls="bg-amber";badge=`Serré · ${st.turnaroundDays} j`;
+    task=`Ménage à faire avant leur arrivée du <b>${fmtLong(st.arrival)}</b> (départ précédent ${st.turnaroundDays} j avant).`;
+  } else {
+    cls="cl-grey";badgeCls="bg-grey";badge="OK";
+    task=`Ménage à faire avant leur arrivée du <b>${fmtLong(st.arrival)}</b>.`;
+  }
+  return `<div class="stay ${cls}">
+    ${isNext?'<div class="next-flag">▸ PROCHAIN</div>':''}
+    <div class="dates">
+      <div class="dbx"><div class="lbl">Arrivée</div><div class="dnum">${jour(st.arrival)}</div><div class="dsub">${dW(st.arrival)} ${moisC(st.arrival)}</div></div>
+      <div class="arrow">→</div>
+      <div class="dbx"><div class="lbl">Départ</div><div class="dnum">${jour(st.departure)}</div><div class="dsub">${dW(st.departure)} ${moisC(st.departure)}</div></div>
     </div>
+    <div class="task">${task}</div>
+    ${guestLine(st)}
+    <div><span class="badge ${badgeCls}">${badge}</span></div>
   </div>`;
 }
 
@@ -174,15 +178,15 @@ async function chargerPlanning(){
     if(!res.ok)throw new Error("Erreur "+res.status);
     const data=await res.json();
     const prop=(data.properties||[]).find(p=>{const n=(p.name||"").toLowerCase();return maison.match.some(k=>n.includes(k));});
-    const list=(prop&&prop.turnovers)||[];
-    if(!list.length){document.getElementById("plan").innerHTML=`<div class="loading">Aucun ménage programmé pour l'instant.</div>`;return;}
+    const list=(prop&&prop.upcomingStays)||[];
+    if(!list.length){document.getElementById("plan").innerHTML=`<div class="loading">Aucun séjour programmé pour l'instant.</div>`;return;}
     const VISIBLE=5;
-    const first=list.slice(0,VISIBLE).map((t,i)=>itemHTML(t,i===0)).join("");
-    const rest=list.slice(VISIBLE).map(t=>itemHTML(t,false)).join("");
+    const first=list.slice(0,VISIBLE).map((s,i)=>stayHTML(s,i===0)).join("");
+    const rest=list.slice(VISIBLE).map(s=>stayHTML(s,false)).join("");
     let html=first;
     if(rest){
       html+=`<div id="restePlan" class="hidden">${rest}</div>
-             <button class="showmore" id="btnMore" onclick="document.getElementById('restePlan').classList.remove('hidden');this.remove();">Voir tout le planning (${list.length-VISIBLE} de plus) ▾</button>`;
+             <button class="showmore" onclick="document.getElementById('restePlan').classList.remove('hidden');this.remove();">Voir tous les séjours (${list.length-VISIBLE} de plus) ▾</button>`;
     }
     document.getElementById("plan").innerHTML=html;
   }catch(e){

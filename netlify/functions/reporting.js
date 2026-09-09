@@ -174,8 +174,38 @@ function computeStats(bookings, names) {
       })
       .sort((a, b) => a.checkout.localeCompare(b.checkout));
 
+    // Planning par SÉJOUR : chaque séjour à venir (départ non passé), arrivée -> départ.
+    // Robuste : on itère tous les séjours, aucun n'est masqué tant que le départ n'est pas passé.
+    const todayIso = iso(today);
+    const departures = data.stays.map(s => s.departure).sort();
+    const upcomingStays = data.stays
+      .filter(s => s.departure >= todayIso && s.departure <= horizonIso)
+      .sort((a, b) => a.arrival.localeCompare(b.arrival) || a.departure.localeCompare(b.departure))
+      .map(s => {
+        // Séjour précédent = départ le plus récent qui précède cette arrivée
+        let prevDeparture = null;
+        for (const d of departures) {
+          if (d <= s.arrival && (prevDeparture === null || d > prevDeparture)) prevDeparture = d;
+        }
+        // si le "précédent" est ce séjour lui-même (cas limite), on ignore
+        if (prevDeparture === s.departure) prevDeparture = null;
+        const turnaroundDays = prevDeparture
+          ? Math.round((new Date(s.arrival) - new Date(prevDeparture)) / 86400000) : null;
+        return {
+          arrival: s.arrival,
+          departure: s.departure,
+          nights: s.nights,
+          people: s.people,
+          breakdown: s.breakdown,
+          prevDeparture,
+          turnaroundDays,
+          sameDayRotation: prevDeparture !== null && prevDeparture === s.arrival,
+          ongoing: s.arrival <= todayIso && s.departure >= todayIso,
+        };
+      });
+
     result.push({
-      propertyId: propId, name: data.name, months, next60, turnovers,
+      propertyId: propId, name: data.name, months, next60, turnovers, upcomingStays,
       ytd: {
         thisYear: { nights: data.ytdThis.nights, revenue: Math.round(data.ytdThis.revenue) },
         lastYear: { nights: data.ytdLast.nights, revenue: Math.round(data.ytdLast.revenue) },

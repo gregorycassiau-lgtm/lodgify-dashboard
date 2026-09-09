@@ -5,32 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Planning ménage</title>
 <style>
-  :root{--navy:#1F3B5C;--blue:#2E6CA4;--green:#1D9E75;--grey:#5A5F66;--border:#E2E5EA;
-        --bg:#F7F8FA;--red:#C0392B;--amber:#BA7517;--lightgreen:#E3F1E7;}
+  :root{--navy:#1F3B5C;--blue:#2E6CA4;--green:#1D9E75;--grey:#6B7280;--border:#E7EAEF;
+        --bg:#F5F7FA;--red:#D6453C;--amber:#C57A16;--soft-red:#FDEDEC;--soft-amber:#FBF3E4;
+        --soft-blue:#EAF2FB;--soft-grey:#F1F3F6;}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#222;background:var(--bg);padding:16px;max-width:560px;margin:0 auto;}
-  h1{font-size:21px;color:var(--navy);margin-bottom:2px;}
-  .sub{color:var(--grey);font-size:13px;margin-bottom:18px;}
-  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
-  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey);margin-bottom:12px;}
-  .bigbtn{display:block;width:100%;padding:16px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;color:#fff;}
-  .b-green{background:var(--green);}
-  .b-amber{background:var(--amber);}
-  .b-green:active{background:#17805e;}.b-amber:active{background:#9c6213;}
-  .prod{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--border);font-size:15px;}
-  .prod input{width:20px;height:20px;}
-  textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:14px;font-family:inherit;margin-top:10px;resize:vertical;min-height:52px;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1a1a1a;
+       background:var(--bg);padding:16px 14px 32px;max-width:560px;margin:0 auto;}
+  h1{font-size:22px;color:var(--navy);margin-bottom:2px;line-height:1.2;}
+  .sub{color:var(--grey);font-size:13.5px;margin-bottom:18px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px 16px;margin-bottom:16px;
+        box-shadow:0 1px 3px rgba(0,0,0,.03);}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--grey);margin-bottom:14px;font-weight:700;}
+
+  .stay{border:1px solid var(--border);border-left-width:5px;border-radius:12px;padding:13px 14px;margin-bottom:11px;}
+  .stay:last-child{margin-bottom:0;}
+  .cl-red{border-left-color:var(--red);background:var(--soft-red);}
+  .cl-amber{border-left-color:var(--amber);background:var(--soft-amber);}
+  .cl-blue{border-left-color:var(--blue);background:var(--soft-blue);}
+  .cl-grey{border-left-color:#B8BEC7;background:var(--soft-grey);}
+  .next-flag{font-size:10.5px;font-weight:800;color:var(--green);letter-spacing:.04em;margin-bottom:8px;}
+
+  /* Deux dates côte à côte */
+  .dates{display:flex;align-items:stretch;gap:8px;margin-bottom:10px;}
+  .dbx{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:7px 6px;text-align:center;}
+  .dbx .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--grey);font-weight:700;}
+  .dbx .dnum{font-size:22px;font-weight:800;color:var(--navy);line-height:1.05;}
+  .dbx .dsub{font-size:11px;color:var(--grey);}
+  .arrow{display:flex;align-items:center;color:var(--grey);font-size:18px;font-weight:700;}
+
+  .task{font-size:13.5px;color:#333;line-height:1.4;margin-bottom:6px;}
+  .guest{font-size:12.5px;color:var(--navy);font-weight:600;background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px 9px;display:inline-block;margin-bottom:8px;}
+  .badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;}
+  .bg-red{background:var(--red);color:#fff;}.bg-amber{background:var(--amber);color:#fff;}
+  .bg-blue{background:var(--blue);color:#fff;}.bg-grey{background:#8A909B;color:#fff;}
+  .showmore{width:100%;padding:12px;border:1px dashed var(--border);background:#fff;border-radius:10px;color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;}
+
+  .bigbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:18px;border-radius:14px;border:none;font-size:17px;font-weight:800;cursor:pointer;margin-bottom:12px;color:#fff;}
+  .b-green{background:var(--green);}.b-green:active{background:#166d50;}
+  .b-amber{background:var(--amber);}.b-amber:active{background:#a4630f;}
+  .hint{font-size:12.5px;color:var(--grey);text-align:center;margin-top:-4px;margin-bottom:4px;}
+  .prod{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--border);font-size:15.5px;}
+  .prod input{width:22px;height:22px;flex:0 0 auto;}
+  textarea{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px;font-size:15px;font-family:inherit;margin-top:12px;resize:vertical;min-height:56px;}
   .hidden{display:none;}
-  .plan li{list-style:none;padding:11px 0;border-bottom:1px solid var(--border);font-size:14px;}
-  .plan li:last-child{border-bottom:none;}
-  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;}
-  .t-express{background:#FCEBEB;color:var(--red);}
-  .t-soon{background:#FAEEDA;color:#854F0B;}
-  .muted{color:var(--grey);font-size:12.5px;}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;z-index:50;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:13px 20px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .3s;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.2);}
   .toast.show{opacity:1;}
-  .loading{text-align:center;color:var(--grey);padding:30px;}
-  .err{color:var(--red);text-align:center;padding:30px;}
+  .loading{text-align:center;color:var(--grey);padding:24px;}
+  .err{color:var(--red);text-align:center;padding:24px;}
 </style>
 </head>
 <body>
@@ -38,125 +59,136 @@
 <div class="sub" id="sub">Chargement…</div>
 
 <div class="card">
-  <h2>Signaler l'état de la maison</h2>
-  <button class="bigbtn b-green" onclick="maisonPrete(this)">✅ La maison est prête</button>
-  <button class="bigbtn b-amber" onclick="toggleProduits()">🧴 Il manque des produits</button>
-
-  <div id="produitsBox" class="hidden" style="margin-top:8px">
-    <div id="prodList"></div>
-    <textarea id="autreProduit" placeholder="Autre chose à signaler (facultatif)…"></textarea>
-    <button class="bigbtn b-amber" style="margin-top:10px" onclick="envoyerManque(this)">Envoyer la liste</button>
-  </div>
+  <h2>🧹 Prochains séjours</h2>
+  <div id="plan"><div class="loading">Chargement du planning…</div></div>
 </div>
 
 <div class="card">
-  <h2>🧹 Prochains ménages</h2>
-  <ul class="plan" id="plan"><div class="loading">Chargement du planning…</div></ul>
+  <h2>Après le ménage</h2>
+  <button class="bigbtn b-green" onclick="maisonPrete(this)">✅ La maison est prête</button>
+  <div class="hint">Ouvre WhatsApp avec le message déjà écrit — appuyez juste sur envoyer.</div>
+  <button class="bigbtn b-amber" onclick="toggleProduits()">🧴 Il manque des produits</button>
+  <div id="produitsBox" class="hidden">
+    <div id="prodList"></div>
+    <textarea id="autreProduit" placeholder="Autre chose à signaler (facultatif)…"></textarea>
+    <button class="bigbtn b-amber" style="margin-top:12px" onclick="envoyerManque(this)">Envoyer la liste</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ===== Configuration =====
 const SUPABASE_URL = "https://yzwvcohhbphbjzizdypz.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6d3Zjb2hoYnBoYmp6aXpkeXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDAwNjQsImV4cCI6MjEwMzY3NjA2NH0.VICwatNyWXWTPeLOoKFPJpFhE9CcHQuVhn0rL1l2GsY";
-// ⚠️ À REMPLACER par ton numéro WhatsApp au format international, sans "+" ni espaces.
-// Exemple pour la France : 33612345678
 const WHATSAPP_NUMERO = "33635278516";
-
 const PRODUITS = ["Liquide vaisselle","Éponges","Sacs poubelle","Papier toilette","Lessive","Essuie-tout","Produit sol / multi-usage","Sel / poivre / café"];
 
-// ===== Identifie la maison depuis l'URL (/menage/royan ou /menage/bordeaux) =====
 const path = location.pathname.replace(/\/+$/,"");
 const slug = (path.split("/").pop() || "").toLowerCase();
 const MAISONS = {
-  royan:    { label:"Gîte de Royan",            match:["plage","royan","jaccuzi","jacuzzi"] },
-  bordeaux: { label:"Maison de Bordeaux",       match:["architecte","bordeaux","piscine"] },
+  royan:    { label:"Gîte de Royan",      match:["plage","royan","jaccuzi","jacuzzi"] },
+  bordeaux: { label:"Maison de Bordeaux", match:["architecte","bordeaux","piscine"] },
 };
 const maison = MAISONS[slug];
 
-document.getElementById("prodList").innerHTML = PRODUITS.map((p,i)=>
+document.getElementById("prodList").innerHTML = PRODUITS.map(p=>
   `<label class="prod"><input type="checkbox" value="${p}"> ${p}</label>`).join("");
 
 if(!maison){
-  document.getElementById("sub").textContent="";
-  document.getElementById("titre").textContent="Page introuvable";
-  document.querySelector("body").innerHTML=`<div class="err">Adresse incorrecte.<br>Utilise le lien fourni (…/menage/royan ou …/menage/bordeaux).</div>`;
+  document.body.innerHTML=`<div class="err">Adresse incorrecte.<br>Utilisez le lien qui vous a été envoyé (…/menage/royan ou …/menage/bordeaux).</div>`;
 }else{
-  document.getElementById("titre").textContent="Planning ménage — "+maison.label;
-  document.getElementById("sub").textContent="Merci pour ton aide ☀️";
+  document.getElementById("titre").textContent=maison.label;
+  document.getElementById("sub").textContent="Merci pour votre aide ☀️";
   chargerPlanning();
 }
 
-// ===== Toast =====
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
-
-// ===== Enregistre dans Supabase =====
 async function enregistrer(payload){
-  try{
-    await fetch(SUPABASE_URL+"/rest/v1/signalements",{
-      method:"POST",
-      headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},
-      body:JSON.stringify(payload)
-    });
-  }catch(e){/* on continue quand même vers WhatsApp */}
+  try{await fetch(SUPABASE_URL+"/rest/v1/signalements",{method:"POST",
+    headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},
+    body:JSON.stringify(payload)});}catch(e){}
 }
-
-// ===== Ouvre WhatsApp pré-rempli =====
-function whatsapp(texte){
-  const url="https://wa.me/"+WHATSAPP_NUMERO+"?text="+encodeURIComponent(texte);
-  window.open(url,"_blank");
-}
-
-// ===== Bouton "maison prête" =====
+function whatsapp(texte){window.open("https://wa.me/"+WHATSAPP_NUMERO+"?text="+encodeURIComponent(texte),"_blank");}
 async function maisonPrete(btn){
-  btn.disabled=true;
-  await enregistrer({maison:slug,type:"maison_prete"});
-  toast("Signalement enregistré ✅");
-  whatsapp(`Bonjour ! ${maison.label} est prête ✅`);
+  btn.disabled=true;await enregistrer({maison:slug,type:"maison_prete"});
+  toast("Merci ! Signalement envoyé ✅");whatsapp(`Bonjour ! ${maison.label} est prête ✅`);
   setTimeout(()=>btn.disabled=false,1500);
 }
-
-// ===== Manque de produits =====
 function toggleProduits(){document.getElementById("produitsBox").classList.toggle("hidden");}
 async function envoyerManque(btn){
   const coches=[...document.querySelectorAll("#prodList input:checked")].map(c=>c.value);
   const autre=document.getElementById("autreProduit").value.trim();
-  if(coches.length===0 && !autre){toast("Coche au moins un produit");return;}
-  btn.disabled=true;
-  await enregistrer({maison:slug,type:"manque_produit",produits:coches,commentaire:autre||null});
+  if(coches.length===0 && !autre){toast("Cochez au moins un produit");return;}
+  btn.disabled=true;await enregistrer({maison:slug,type:"manque_produit",produits:coches,commentaire:autre||null});
   const liste=[...coches, ...(autre?[autre]:[])].map(p=>"- "+p).join("\n");
-  toast("Liste envoyée ✅");
-  whatsapp(`Bonjour ! Il manque des produits à ${maison.label} :\n${liste}`);
+  toast("Merci ! Liste envoyée ✅");whatsapp(`Bonjour ! Il manque des produits à ${maison.label} :\n${liste}`);
   setTimeout(()=>{btn.disabled=false;document.getElementById("produitsBox").classList.add("hidden");
     document.querySelectorAll("#prodList input:checked").forEach(c=>c.checked=false);
     document.getElementById("autreProduit").value="";},1500);
 }
 
-// ===== Planning depuis la fonction Netlify =====
 const FR_MONTHS=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
 const JOURS_C=["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
-function fmtDayW(iso){const d=new Date(iso+"T00:00:00");const[y,m,dd]=iso.split("-");return`${JOURS_C[d.getDay()]} ${+dd} ${FR_MONTHS[+m-1]}`;}
+function dW(iso){return JOURS_C[new Date(iso+"T00:00:00").getDay()];}
+function jour(iso){return +iso.split("-")[2];}
+function moisC(iso){return FR_MONTHS[+iso.split("-")[1]-1];}
+function fmtLong(iso){return `${dW(iso)} ${jour(iso)} ${moisC(iso)}`;}
+
+function guestLine(st){
+  const parts=[];
+  if(st.people!=null) parts.push(`👥 ${st.people} personne${st.people>1?"s":""}`);
+  if(st.breakdown && st.breakdown.infants>0) parts.push(`👶 bébé${st.breakdown.infants>1?"s":""}`);
+  if(st.breakdown && st.breakdown.pets>0) parts.push(`🐾 animal`);
+  if(st.nights!=null) parts.push(`🛏️ ${st.nights} nuit${st.nights>1?"s":""}`);
+  if(!parts.length) return "";
+  return `<div class="guest">${parts.join(" &nbsp;·&nbsp; ")}</div>`;
+}
+
+function stayHTML(st,isNext){
+  let cls,badgeCls,badge,task;
+  if(st.ongoing){
+    cls="cl-blue";badgeCls="bg-blue";badge="EN COURS";
+    task=`Voyageurs actuellement sur place — ils repartent le <b>${fmtLong(st.departure)}</b>.`;
+  } else if(st.sameDayRotation){
+    cls="cl-red";badgeCls="bg-red";badge="⚡ MÊME JOUR";
+    task=`Le voyageur précédent part le <b>jour même</b> de cette arrivée — ménage express le ${fmtLong(st.arrival)}.`;
+  } else if(st.turnaroundDays!=null && st.turnaroundDays<=2){
+    cls="cl-amber";badgeCls="bg-amber";badge=`Serré · ${st.turnaroundDays} j`;
+    task=`Ménage à faire avant leur arrivée du <b>${fmtLong(st.arrival)}</b> (départ précédent ${st.turnaroundDays} j avant).`;
+  } else {
+    cls="cl-grey";badgeCls="bg-grey";badge="OK";
+    task=`Ménage à faire avant leur arrivée du <b>${fmtLong(st.arrival)}</b>.`;
+  }
+  return `<div class="stay ${cls}">
+    ${isNext?'<div class="next-flag">▸ PROCHAIN</div>':''}
+    <div class="dates">
+      <div class="dbx"><div class="lbl">Arrivée</div><div class="dnum">${jour(st.arrival)}</div><div class="dsub">${dW(st.arrival)} ${moisC(st.arrival)}</div></div>
+      <div class="arrow">→</div>
+      <div class="dbx"><div class="lbl">Départ</div><div class="dnum">${jour(st.departure)}</div><div class="dsub">${dW(st.departure)} ${moisC(st.departure)}</div></div>
+    </div>
+    <div class="task">${task}</div>
+    ${guestLine(st)}
+    <div><span class="badge ${badgeCls}">${badge}</span></div>
+  </div>`;
+}
 
 async function chargerPlanning(){
   try{
     const res=await fetch("/.netlify/functions/reporting",{cache:"no-store"});
     if(!res.ok)throw new Error("Erreur "+res.status);
     const data=await res.json();
-    const prop=(data.properties||[]).find(p=>{
-      const n=(p.name||"").toLowerCase();
-      return maison.match.some(k=>n.includes(k));
-    });
-    if(!prop||!prop.turnovers||!prop.turnovers.length){
-      document.getElementById("plan").innerHTML=`<div class="muted">Aucun ménage programmé pour l'instant.</div>`;return;
+    const prop=(data.properties||[]).find(p=>{const n=(p.name||"").toLowerCase();return maison.match.some(k=>n.includes(k));});
+    const list=(prop&&prop.upcomingStays)||[];
+    if(!list.length){document.getElementById("plan").innerHTML=`<div class="loading">Aucun séjour programmé pour l'instant.</div>`;return;}
+    const VISIBLE=5;
+    const first=list.slice(0,VISIBLE).map((s,i)=>stayHTML(s,i===0)).join("");
+    const rest=list.slice(VISIBLE).map(s=>stayHTML(s,false)).join("");
+    let html=first;
+    if(rest){
+      html+=`<div id="restePlan" class="hidden">${rest}</div>
+             <button class="showmore" onclick="document.getElementById('restePlan').classList.remove('hidden');this.remove();">Voir tous les séjours (${list.length-VISIBLE} de plus) ▾</button>`;
     }
-    document.getElementById("plan").innerHTML=prop.turnovers.map(t=>{
-      let arr,tag="";
-      if(t.sameDay){arr=`arrivée le <b>jour même</b> (${fmtDayW(t.nextCheckin)})`;tag=`<span class="tag t-express">EXPRESS</span>`;}
-      else if(t.nextCheckin){arr=`prochaine arrivée ${fmtDayW(t.nextCheckin)} — ${t.gapDays} j`;if(t.gapDays<=2)tag=`<span class="tag t-soon">${t.gapDays} j</span>`;}
-      else arr="pas d'arrivée programmée ensuite";
-      return `<li><b>Départ : ${fmtDayW(t.checkout)}</b>${tag}<div class="muted">→ ${arr}</div></li>`;
-    }).join("");
+    document.getElementById("plan").innerHTML=html;
   }catch(e){
     document.getElementById("plan").innerHTML=`<div class="err">Impossible de charger le planning.<br>${e.message}</div>`;
   }

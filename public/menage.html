@@ -83,18 +83,6 @@
 </div>
 
 <div class="card">
-  <h2>Après le ménage</h2>
-  <button class="bigbtn b-green" onclick="maisonPrete(this)">✅ La maison est prête</button>
-  <div class="hint">Ouvre WhatsApp avec le message déjà écrit — appuyez juste sur envoyer.</div>
-  <button class="bigbtn b-amber" onclick="toggleProduits()">🧴 Il manque des produits</button>
-  <div id="produitsBox" class="hidden">
-    <div id="prodList"></div>
-    <textarea id="autreProduit" placeholder="Autre chose à signaler (facultatif)…"></textarea>
-    <button class="bigbtn b-amber" style="margin-top:12px" onclick="envoyerManque(this)">Envoyer la liste</button>
-  </div>
-</div>
-
-<div class="card">
   <h2>📅 Vue d'ensemble</h2>
   <div class="calnav">
     <button id="calPrev" onclick="calShift(-1)">‹</button>
@@ -107,6 +95,18 @@
   </div>
   <div class="calgrid" id="calGrid"></div>
   <div class="callegend"><span class="sw"></span> occupé &nbsp;·&nbsp; <span class="dot d-arr"></span> arrivée &nbsp;·&nbsp; <span class="dot d-dep"></span> départ (ménage)</div>
+</div>
+
+<div class="card">
+  <h2>Après le ménage</h2>
+  <button class="bigbtn b-green" onclick="maisonPrete(this)">✅ La maison est prête</button>
+  <div class="hint">Ouvre WhatsApp avec le message déjà écrit — appuyez juste sur envoyer.</div>
+  <button class="bigbtn b-amber" onclick="toggleProduits()">🧴 Il manque des produits</button>
+  <div id="produitsBox" class="hidden">
+    <div id="prodList"></div>
+    <textarea id="autreProduit" placeholder="Autre chose à signaler (facultatif)…"></textarea>
+    <button class="bigbtn b-amber" style="margin-top:12px" onclick="envoyerManque(this)">Envoyer la liste</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -211,11 +211,12 @@ let calMonth=new Date(); calMonth.setDate(1); calMonth.setHours(0,0,0,0);
 const CAL_MIN=new Date(calMonth);           // mois courant = plancher
 const CAL_MAX=new Date(calMonth); CAL_MAX.setMonth(CAL_MAX.getMonth()+11);
 let DAYINFO={};
+function addDays(iso,n){const d=new Date(iso+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
 function buildDayInfo(stays){
   const info={}; const mark=(iso,k)=>{(info[iso]=info[iso]||{})[k]=true;};
   for(const s of stays){
-    let d=new Date(s.arrival+"T00:00:00"); const end=new Date(s.departure+"T00:00:00");
-    while(d<end){mark(d.toISOString().slice(0,10),"occ");d.setDate(d.getDate()+1);}
+    let cur=s.arrival;
+    while(cur<=s.departure){mark(cur,"occ");cur=addDays(cur,1);}  // arrivée → départ inclus
     mark(s.arrival,"arr"); mark(s.departure,"dep");
   }
   return info;
@@ -225,7 +226,8 @@ function renderCal(){
   document.getElementById("calLabel").textContent=calMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
   const off=(new Date(y,m,1).getDay()+6)%7;   // semaine commençant lundi
   const ndays=new Date(y,m+1,0).getDate();
-  const todayIso=new Date().toISOString().slice(0,10);
+  const _n=new Date();
+  const todayIso=`${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,"0")}-${String(_n.getDate()).padStart(2,"0")}`;
   let cells="";
   for(let i=0;i<off;i++) cells+=`<div class="cell empty"></div>`;
   for(let day=1;day<=ndays;day++){

@@ -52,6 +52,25 @@
   .toast.show{opacity:1;}
   .loading{text-align:center;color:var(--grey);padding:24px;}
   .err{color:var(--red);text-align:center;padding:24px;}
+  /* Calendrier */
+  .calnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .calnav button{background:#fff;border:1px solid var(--border);border-radius:9px;width:38px;height:38px;font-size:20px;cursor:pointer;color:var(--navy);font-weight:700;}
+  .calnav button:disabled{opacity:.3;cursor:default;}
+  .mlabel{font-weight:800;color:var(--navy);font-size:16px;text-transform:capitalize;}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .calhead{font-size:10px;text-transform:uppercase;color:var(--grey);text-align:center;font-weight:700;padding:2px 0;}
+  .cell{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;padding-top:4px;border:1px solid transparent;background:#fff;}
+  .cell.empty{background:transparent;}
+  .cell.occ{background:var(--soft-blue);}
+  .cell.today{border-color:var(--navy);}
+  .cell .n{font-size:11.5px;color:#333;font-weight:600;}
+  .cell.today .n{color:var(--navy);font-weight:800;}
+  .dots{display:flex;gap:2px;margin-top:2px;}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block;vertical-align:middle;}
+  .d-arr{background:var(--green);}
+  .d-dep{background:var(--red);}
+  .callegend{font-size:11.5px;color:var(--grey);margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--soft-blue);border:1px solid var(--border);vertical-align:middle;}
 </style>
 </head>
 <body>
@@ -73,6 +92,21 @@
     <textarea id="autreProduit" placeholder="Autre chose à signaler (facultatif)…"></textarea>
     <button class="bigbtn b-amber" style="margin-top:12px" onclick="envoyerManque(this)">Envoyer la liste</button>
   </div>
+</div>
+
+<div class="card">
+  <h2>📅 Vue d'ensemble</h2>
+  <div class="calnav">
+    <button id="calPrev" onclick="calShift(-1)">‹</button>
+    <div class="mlabel" id="calLabel">…</div>
+    <button id="calNext" onclick="calShift(1)">›</button>
+  </div>
+  <div class="calgrid" style="margin-bottom:4px">
+    <div class="calhead">lun</div><div class="calhead">mar</div><div class="calhead">mer</div>
+    <div class="calhead">jeu</div><div class="calhead">ven</div><div class="calhead">sam</div><div class="calhead">dim</div>
+  </div>
+  <div class="calgrid" id="calGrid"></div>
+  <div class="callegend"><span class="sw"></span> occupé &nbsp;·&nbsp; <span class="dot d-arr"></span> arrivée &nbsp;·&nbsp; <span class="dot d-dep"></span> départ (ménage)</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -172,6 +206,42 @@ function stayHTML(st,isNext){
   </div>`;
 }
 
+// ===== Calendrier =====
+let calMonth=new Date(); calMonth.setDate(1); calMonth.setHours(0,0,0,0);
+const CAL_MIN=new Date(calMonth);           // mois courant = plancher
+const CAL_MAX=new Date(calMonth); CAL_MAX.setMonth(CAL_MAX.getMonth()+11);
+let DAYINFO={};
+function buildDayInfo(stays){
+  const info={}; const mark=(iso,k)=>{(info[iso]=info[iso]||{})[k]=true;};
+  for(const s of stays){
+    let d=new Date(s.arrival+"T00:00:00"); const end=new Date(s.departure+"T00:00:00");
+    while(d<end){mark(d.toISOString().slice(0,10),"occ");d.setDate(d.getDate()+1);}
+    mark(s.arrival,"arr"); mark(s.departure,"dep");
+  }
+  return info;
+}
+function renderCal(){
+  const y=calMonth.getFullYear(), m=calMonth.getMonth();
+  document.getElementById("calLabel").textContent=calMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const off=(new Date(y,m,1).getDay()+6)%7;   // semaine commençant lundi
+  const ndays=new Date(y,m+1,0).getDate();
+  const todayIso=new Date().toISOString().slice(0,10);
+  let cells="";
+  for(let i=0;i<off;i++) cells+=`<div class="cell empty"></div>`;
+  for(let day=1;day<=ndays;day++){
+    const iso=`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const inf=DAYINFO[iso]||{};
+    const cls=["cell"]; if(inf.occ)cls.push("occ"); if(iso===todayIso)cls.push("today");
+    let dots=""; if(inf.arr)dots+=`<span class="dot d-arr"></span>`; if(inf.dep)dots+=`<span class="dot d-dep"></span>`;
+    cells+=`<div class="${cls.join(" ")}"><span class="n">${day}</span><span class="dots">${dots}</span></div>`;
+  }
+  document.getElementById("calGrid").innerHTML=cells;
+  document.getElementById("calPrev").disabled=(y===CAL_MIN.getFullYear()&&m===CAL_MIN.getMonth());
+  document.getElementById("calNext").disabled=(y===CAL_MAX.getFullYear()&&m===CAL_MAX.getMonth());
+}
+function calShift(n){calMonth.setMonth(calMonth.getMonth()+n);renderCal();}
+function initCalendar(stays){DAYINFO=buildDayInfo(stays);renderCal();}
+
 async function chargerPlanning(){
   try{
     const res=await fetch("/.netlify/functions/reporting",{cache:"no-store"});
@@ -179,6 +249,7 @@ async function chargerPlanning(){
     const data=await res.json();
     const prop=(data.properties||[]).find(p=>{const n=(p.name||"").toLowerCase();return maison.match.some(k=>n.includes(k));});
     const list=(prop&&prop.upcomingStays)||[];
+    initCalendar(list);
     if(!list.length){document.getElementById("plan").innerHTML=`<div class="loading">Aucun séjour programmé pour l'instant.</div>`;return;}
     const VISIBLE=5;
     const first=list.slice(0,VISIBLE).map((s,i)=>stayHTML(s,i===0)).join("");
